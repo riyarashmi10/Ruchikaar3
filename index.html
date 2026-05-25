@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ruchikaar — Smart Meal Planner</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --forest: #1B5E3B; --forest-light: #2d7a52; --saffron: #E8871A;
+      --saffron-light: #fdf3e7; --cream: #FAF7F2; --ink: #1a1a1a;
+      --muted: #6b6b6b; --border: #e8e0d4; --white: #ffffff; --red: #c0392b;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; }
+    .app { max-width: 680px; margin: 0 auto; padding: 0 20px 60px; }
+    .header { padding: 32px 0 24px; display: flex; align-items: baseline; gap: 10px; }
+    .logo { font-family: 'Playfair Display', serif; font-size: 28px; color: var(--forest); letter-spacing: -0.5px; }
+    .logo-dot { width: 7px; height: 7px; background: var(--saffron); border-radius: 50%; display: inline-block; margin-bottom: 4px; margin-left: 2px; }
+    .tagline { font-size: 12px; color: var(--muted); font-weight: 300; letter-spacing: 0.5px; text-transform: uppercase; }
+    .steps { display: flex; gap: 6px; margin-bottom: 28px; }
+    .step-dot { height: 4px; border-radius: 2px; background: var(--border); flex: 1; transition: background 0.4s; }
+    .step-dot.active { background: var(--forest); }
+    .step-dot.done { background: var(--saffron); }
+    .section-label { font-size: 11px; font-weight: 500; letter-spacing: 1.2px; text-transform: uppercase; color: var(--saffron); margin-bottom: 8px; }
+    .section-title { font-family: 'Playfair Display', serif; font-size: 26px; color: var(--ink); margin-bottom: 6px; line-height: 1.2; }
+    .section-sub { font-size: 14px; color: var(--muted); margin-bottom: 28px; font-weight: 300; line-height: 1.6; }
+    .form-grid { display: grid; gap: 20px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0.3px; }
+    .field select, .field input { appearance: none; border: 1.5px solid var(--border); background: var(--white); padding: 11px 14px; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink); outline: none; transition: border-color 0.2s; width: 100%; }
+    .field select:focus, .field input:focus { border-color: var(--forest); }
+    .field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b6b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+    .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { padding: 7px 14px; border-radius: 20px; border: 1.5px solid var(--border); font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; background: var(--white); color: var(--ink); transition: all 0.15s; }
+    .chip.selected { border-color: var(--forest); background: var(--forest); color: var(--white); }
+    .chip:hover:not(.selected) { border-color: var(--forest); }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .btn { width: 100%; padding: 15px; background: var(--forest); color: var(--white); border: none; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 28px; transition: background 0.2s; }
+    .btn:hover { background: var(--forest-light); }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
+    .btn-ghost { background: transparent; color: var(--forest); border: 1.5px solid var(--forest); margin-top: 10px; }
+    .btn-ghost:hover { background: #f0f7f3; }
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+    .loading-wrap { text-align: center; padding: 60px 20px; }
+    .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--forest); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-wrap p { font-size: 14px; color: var(--muted); font-style: italic; }
+    .loading-wrap strong { display: block; font-size: 16px; color: var(--ink); margin-bottom: 6px; }
+    .plan-header { margin-bottom: 20px; }
+    .plan-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+    .action-btn { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; border: 1.5px solid var(--border); background: var(--white); color: var(--ink); transition: all 0.15s; white-space: nowrap; }
+    .action-btn.download { border-color: #2563eb; color: #2563eb; }
+    .action-btn.edit { border-color: var(--saffron); color: #92400e; }
+    .action-btn.feedback-btn { border-color: #a78bfa; color: #6d28d9; }
+    .day-block { margin-bottom: 20px; }
+    .day-label { font-size: 11px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .day-totals { font-size: 11px; color: var(--muted); padding: 5px 0 8px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .day-totals span { color: var(--forest); font-weight: 500; }
+    .meal-row { display: flex; align-items: center; padding: 9px 0; border-bottom: 1px solid #f0ece6; gap: 8px; }
+    .meal-row:last-child { border-bottom: none; }
+    .meal-type { font-size: 11px; color: var(--muted); width: 90px; flex-shrink: 0; font-weight: 500; }
+    .meal-name { font-size: 14px; color: var(--ink); flex: 1; min-width: 0; }
+    .meal-name.skipped { text-decoration: line-through; color: var(--muted); }
+    .meal-macros { font-size: 11px; color: var(--muted); text-align: right; white-space: nowrap; flex-shrink: 0; }
+    .recipe-btn { background: none; border: 1px solid var(--border); padding: 4px 10px; border-radius: 6px; font-size: 11px; color: var(--forest); cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap; flex-shrink: 0; transition: all 0.15s; }
+    .recipe-btn:hover { background: var(--forest); color: var(--white); border-color: var(--forest); }
+    .target-bar-wrap { background: var(--white); border: 1.5px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 20px; }
+    .target-bar-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .target-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 10px; }
+    .target-bar-fill { height: 100%; border-radius: 3px; }
+    .fill-cal { background: var(--saffron); } .fill-protein { background: #3b82f6; } .fill-fibre { background: #22c55e; }
+    .recipe-card { background: var(--white); border-radius: 16px; border: 1.5px solid var(--border); overflow: hidden; margin-bottom: 20px; }
+    .recipe-card-header { background: var(--forest); padding: 20px 22px; }
+    .recipe-card-header h2 { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--white); margin-bottom: 4px; }
+    .recipe-card-header p { font-size: 12px; color: rgba(255,255,255,0.7); }
+    .recipe-card-body { padding: 22px; }
+    .recipe-section-title { font-size: 11px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: var(--saffron); margin-bottom: 10px; margin-top: 20px; }
+    .recipe-section-title:first-child { margin-top: 0; }
+    .ingredient-list { list-style: none; display: grid; gap: 6px; }
+    .ingredient-list li { font-size: 14px; padding: 8px 12px; background: var(--cream); border-radius: 8px; display: flex; justify-content: space-between; }
+    .ingredient-list li span { color: var(--muted); font-size: 13px; }
+    .steps-list { list-style: none; counter-reset: steps; display: grid; gap: 10px; }
+    .steps-list li { font-size: 14px; line-height: 1.6; padding: 10px 12px 10px 44px; position: relative; background: var(--cream); border-radius: 8px; counter-increment: steps; }
+    .steps-list li::before { content: counter(steps); position: absolute; left: 12px; top: 10px; width: 22px; height: 22px; background: var(--forest); color: white; border-radius: 50%; font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; }
+    .cook-note { background: var(--saffron-light); border: 1.5px solid #f0c890; border-radius: 12px; padding: 18px 20px; margin-top: 20px; }
+    .cook-note-label { font-size: 11px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: var(--saffron); margin-bottom: 8px; }
+    .cook-tips-list { list-style: none; display: grid; gap: 8px; }
+    .cook-tips-list li { font-size: 14px; color: #5a3e10; padding-left: 20px; position: relative; line-height: 1.5; }
+    .cook-tips-list li::before { content: "•"; position: absolute; left: 0; color: var(--saffron); font-weight: 700; }
+    .macro-strip { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .macro-pill { background: #e8f4ee; border-radius: 20px; padding: 5px 12px; font-size: 12px; color: var(--forest); font-weight: 500; }
+    .macro-pill.cal { background: #fef3e2; color: #92400e; } .macro-pill.protein { background: #eff6ff; color: #1d4ed8; } .macro-pill.fibre { background: #f0fdf4; color: #166534; }
+    .back-link { font-size: 13px; color: var(--muted); cursor: pointer; margin-bottom: 20px; display: inline-flex; align-items: center; gap: 4px; }
+    .back-link:hover { color: var(--forest); }
+    .error-box { background: #fdf2f2; border: 1px solid #f5c6c6; border-radius: 10px; padding: 14px 16px; margin-top: 16px; font-size: 13px; color: var(--red); }
+    .badge { display: inline-block; border-radius: 10px; padding: 2px 8px; font-size: 10px; font-weight: 600; letter-spacing: 0.5px; margin-left: 6px; vertical-align: middle; border: 1px solid; }
+    .badge-trending { background: #fff3cd; color: #856404; border-color: #ffc107; }
+    .badge-family { background: #e8f4ee; color: #1B5E3B; border-color: #a8d5b8; }
+    .badge-cooked { background: #f0fdf4; color: #166534; border-color: #86efac; }
+    .badge-modified { background: #fef3e2; color: #92400e; border-color: #fcd34d; }
+    .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .targets-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .target-chip { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+    .target-chip.cal { background: #fef3e2; color: #92400e; } .target-chip.protein { background: #eff6ff; color: #1d4ed8; } .target-chip.fibre { background: #f0fdf4; color: #166534; }
+    .yt-section { margin-top: 20px; }
+    .yt-cards { display: grid; gap: 8px; margin-top: 8px; }
+    .yt-card { display: flex; align-items: center; gap: 12px; background: #fff8f8; border: 1.5px solid #fecaca; border-radius: 10px; padding: 10px 14px; text-decoration: none; transition: all 0.15s; }
+    .yt-card:hover { background: #fee2e2; border-color: #ef4444; }
+    .yt-icon { width: 32px; height: 32px; background: #ef4444; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: white; font-size: 14px; }
+    .yt-info { flex: 1; min-width: 0; }
+    .yt-title { font-size: 13px; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .yt-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .share-section { margin-top: 20px; display: grid; gap: 8px; }
+    .share-label { font-size: 11px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .share-btn { display: flex; align-items: center; gap: 10px; justify-content: center; border: none; border-radius: 10px; padding: 13px 16px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; width: 100%; transition: all 0.2s; text-decoration: none; }
+    .share-btn-full { background: #25D366; color: white; }
+    .share-btn-tips { background: var(--saffron-light); color: #92400e; border: 1.5px solid #f0c890; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; display: flex; align-items: flex-end; justify-content: center; }
+    .modal { background: var(--white); border-radius: 20px 20px 0 0; width: 100%; max-width: 680px; padding: 28px 24px 40px; max-height: 88vh; overflow-y: auto; }
+    .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+    .modal-title { font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 6px; }
+    .modal-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+    .fb-summary { background: var(--cream); border-radius: 10px; padding: 14px 16px; margin: 0 0 16px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center; }
+    .fb-summary-num { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700; }
+    .fb-summary-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .fb-day-label { font-size: 11px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted); margin: 16px 0 4px; }
+    .feedback-meal { display: flex; align-items: flex-start; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0ece6; gap: 12px; }
+    .feedback-meal:last-child { border-bottom: none; }
+    .feedback-meal-info { flex: 1; }
+    .feedback-meal-name { font-size: 14px; font-weight: 500; }
+    .feedback-meal-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .feedback-status { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+    .fb-btn { padding: 5px 10px; border-radius: 20px; border: 1.5px solid var(--border); font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; background: var(--white); white-space: nowrap; }
+    .fb-btn.cooked { border-color: #22c55e; background: #f0fdf4; color: #166534; font-weight: 500; }
+    .fb-btn.modified { border-color: var(--saffron); background: var(--saffron-light); color: #92400e; font-weight: 500; }
+    .fb-btn.skipped { border-color: #ef4444; background: #fef2f2; color: #991b1b; font-weight: 500; }
+    .fb-note { width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 14px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink); resize: vertical; min-height: 80px; margin-top: 16px; outline: none; box-sizing: border-box; }
+    .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: var(--ink); color: white; padding: 10px 22px; border-radius: 20px; font-size: 13px; font-weight: 500; z-index: 200; white-space: nowrap; pointer-events: none; }
+    .returning-banner { background: #f0f7f3; border: 1.5px solid #a8d5b8; border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; font-size: 13px; color: var(--forest); }
+    .returning-banner strong { display: block; margin-bottom: 4px; }
+    /* API key prompt */
+    .api-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .api-box { background: white; border-radius: 16px; padding: 32px 28px; max-width: 440px; width: 100%; }
+    .api-box h2 { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--forest); margin-bottom: 8px; }
+    .api-box p { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 16px; }
+    .api-box input { width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 14px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; margin-bottom: 12px; }
+    .api-box input:focus { border-color: var(--forest); }
+    .api-note { font-size: 11px; color: var(--muted); margin-top: 8px; }
+    .api-note a { color: var(--forest); }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const ALL_MEALS = ["Breakfast", "Morning snack", "Lunch", "Evening snack", "Dinner"];
+const CUISINES = ["North Indian", "South Indian", "Bengali", "Gujarati", "Maharashtrian", "Punjabi", "Mexican", "South Asian", "Global / World", "Any"];
+const ALLERGIES = ["None", "Nuts", "Dairy", "Gluten", "Eggs", "Shellfish", "Soy"];
+const GOALS = ["Weight loss", "Weight gain", "Muscle gain", "Maintain weight", "Managing diabetes", "Heart health", "General wellness"];
+const FAMILY_MEMBERS = ["Young kids (under 10)", "Teens", "Adults", "Elderly (60+)"];
+
+async function callClaude(prompt, systemPrompt) {
+  const res = await fetch("/api/claude", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, system: systemPrompt, messages: [{ role: "user", content: prompt }] }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content[0].text;
+}
+
+function downloadPlanCSV(plan, profile, feedback) {
+  const date = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  const rows = [["Ruchikaar — Meal Plan"], ["Generated: " + date], ["Goal: " + profile.goal, "Diet: " + profile.diet], [], ["Day", "Meal", "Dish", "Calories", "Protein (g)", "Fibre (g)", "Status"]];
+  plan.forEach((day, di) => {
+    profile.meals.forEach(mt => { const m = day[mt]; if (!m) return; rows.push(["Day " + (di+1), mt, m.name, m.cal, m.protein, m.fibre||"—", feedback[di+"-"+mt]||"—"]); });
+    const dt = profile.meals.reduce((a,mt)=>{const m=day[mt];if(m){a.c+=m.cal||0;a.p+=m.protein||0;a.f+=m.fibre||0;}return a;},{c:0,p:0,f:0});
+    rows.push(["Day "+(di+1)+" TOTAL","","",dt.c,dt.p,dt.f,""]); rows.push([]);
+  });
+  const csv = rows.map(r=>r.map(c=>'"'+String(c||"").replace(/"/g,'""')+'"').join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
+  a.download = "Ruchikaar_MealPlan_"+new Date().toISOString().slice(0,10)+".csv";
+  a.click();
+}
+
+function buildFullShareText(r) {
+  const ings = (r.ingredients||[]).map(i=>"  • "+i.name+" — "+i.qty).join("\n");
+  const steps = (r.steps||[]).map((s,i)=>(i+1)+". "+s).join("\n");
+  const tips = Array.isArray(r.cookTips)?r.cookTips.join("\n"):(r.cookNote||"");
+  return "🍽️ *"+r.name+"* — Full Recipe\n\n*Ingredients:*\n"+ings+"\n\n*Steps:*\n"+steps+"\n\n🧑‍🍳 *Cook Tips:*\n"+tips+"\n\n_Sent via Ruchikaar_";
+}
+function buildTipsShareText(r) {
+  const tips = Array.isArray(r.cookTips)?r.cookTips.map((t,i)=>(i+1)+". "+t).join("\n"):(r.cookNote||"");
+  return "🧑‍🍳 *"+r.name+"* — Cook's Tips\n\n"+tips+"\n\n_Ask for the full recipe. Sent via Ruchikaar_";
+}
+
+function ApiKeyPrompt({ onSave }) {
+  const [key, setKey] = useState("");
+  return (
+    <div className="api-overlay">
+      <div className="api-box">
+        <h2>Welcome to Ruchikaar</h2>
+        <p>Enter your Anthropic API key to get started. It stays in your browser only — never sent anywhere except Anthropic.</p>
+        <input type="password" placeholder="sk-ant-api03-..." value={key} onChange={e=>setKey(e.target.value)} onKeyDown={e=>e.key==="Enter"&&key.startsWith("sk-")&&onSave(key)} />
+        <button className="btn" style={{marginTop:0}} onClick={()=>key.startsWith("sk-")&&onSave(key)} disabled={!key.startsWith("sk-")}>Start planning →</button>
+        <p className="api-note">Get your key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> → API Keys</p>
+      </div>
+    </div>
+  );
+}
+
+function TargetBars({ plan, meals, profile }) {
+  const tot = plan.reduce((a,day)=>{meals.forEach(mt=>{const m=day[mt];if(m){a.cal+=m.cal||0;a.p+=m.protein||0;a.f+=m.fibre||0;}});return a;},{cal:0,p:0,f:0});
+  const d=plan.length, avg={cal:Math.round(tot.cal/d),p:Math.round(tot.p/d),f:Math.round(tot.f/d)};
+  const tC=parseInt(profile.calorieTarget)||null,tP=parseInt(profile.proteinTarget)||null,tF=parseInt(profile.fibreTarget)||null;
+  if(!tC&&!tP&&!tF) return null;
+  const Bar=({val,target,cls,label,unit})=>{
+    if(!target) return null;
+    const pct=Math.min(100,Math.round((val/target)*100)),over=val>target;
+    return <div style={{marginBottom:10}}>
+      <div className="target-bar-label"><span>{label}</span><span style={{color:over?"#c0392b":"var(--forest)"}}>{val}{unit} / {target}{unit} {over?"⚠️ over":"("+pct+"%)"}</span></div>
+      <div className="target-bar"><div className={"target-bar-fill "+cls} style={{width:pct+"%",background:over?"#ef4444":undefined}}/></div>
+    </div>;
+  };
+  return <div className="target-bar-wrap">
+    <div className="section-label" style={{marginBottom:12}}>Daily Averages vs Targets</div>
+    <Bar val={avg.cal} target={tC} cls="fill-cal" label="Calories" unit=" kcal"/>
+    <Bar val={avg.p} target={tP} cls="fill-protein" label="Protein" unit="g"/>
+    <Bar val={avg.f} target={tF} cls="fill-fibre" label="Fibre" unit="g"/>
+  </div>;
+}
+
+function FeedbackModal({ plan, profile, feedback, onUpdate, onClose, onSaveAndRegen }) {
+  const [note, setNote] = useState("");
+  const counts={cooked:0,modified:0,skipped:0};
+  plan.forEach((day,di)=>profile.meals.forEach(mt=>{const v=feedback[di+"-"+mt];if(v)counts[v]++;}));
+  return (
+    <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal">
+        <div className="modal-handle"/>
+        <div className="modal-title">How did the week go?</div>
+        <div className="modal-sub">Mark each dish — this shapes next week's plan.</div>
+        {(counts.cooked+counts.modified+counts.skipped)>0&&(
+          <div className="fb-summary">
+            <div><div className="fb-summary-num" style={{color:"#166534"}}>{counts.cooked}</div><div className="fb-summary-label">✓ Cooked</div></div>
+            <div><div className="fb-summary-num" style={{color:"#92400e"}}>{counts.modified}</div><div className="fb-summary-label">~ Modified</div></div>
+            <div><div className="fb-summary-num" style={{color:"#991b1b"}}>{counts.skipped}</div><div className="fb-summary-label">✕ Skipped</div></div>
+          </div>
+        )}
+        {plan.map((day,di)=>(
+          <div key={di}>
+            <div className="fb-day-label">Day {di+1}</div>
+            {profile.meals.filter(mt=>day[mt]).map(mt=>{
+              const key=di+"-"+mt, status=feedback[key];
+              return (
+                <div key={mt} className="feedback-meal">
+                  <div className="feedback-meal-info">
+                    <div className="feedback-meal-name">{day[mt].name}</div>
+                    <div className="feedback-meal-meta">{mt}</div>
+                  </div>
+                  <div className="feedback-status">
+                    {["cooked","modified","skipped"].map(s=>(
+                      <button key={s} className={"fb-btn "+(status===s?s:"")} onClick={()=>onUpdate(key,status===s?null:s)}>
+                        {s==="cooked"?"✓ Cooked":s==="modified"?"~ Modified":"✕ Skip"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+        <textarea className="fb-note" placeholder="Anything else? e.g. 'Dal was bland', 'Kids loved the pasta'…" value={note} onChange={e=>setNote(e.target.value)}/>
+        <button className="btn" style={{marginTop:16}} onClick={()=>onSaveAndRegen(note)}>Save & plan next week →</button>
+        <button className="btn btn-ghost" onClick={onClose}>Close without saving</button>
+      </div>
+    </div>
+  );
+}
+
+function ProfileForm({ onSubmit, initialProfile, lastFeedback }) {
+  const [form, setForm] = useState(initialProfile || {
+    diet:"Vegetarian",cuisine:[],goal:"",activity:"Moderate",
+    allergies:["None"],cooking:"myself",phase:"Regular adult",
+    days:"3",cookingFor:"myself",familyMembers:[],
+    familyLikes:"",calorieTarget:"",proteinTarget:"",fibreTarget:"",
+    meals:["Breakfast","Lunch","Dinner"],
+  });
+  const [err, setErr] = useState("");
+  const toggle=(field,val)=>{
+    setForm(f=>{
+      const arr=f[field];
+      if(field==="allergies"&&val==="None") return {...f,[field]:["None"]};
+      if(field==="allergies"){const w=arr.filter(x=>x!=="None");return {...f,[field]:w.includes(val)?w.filter(x=>x!==val):[...w,val]};}
+      if(field==="meals"){const n=arr.includes(val)?arr.filter(x=>x!==val):[...arr,val];return {...f,[field]:ALL_MEALS.filter(m=>n.includes(m))};}
+      return {...f,[field]:arr.includes(val)?arr.filter(x=>x!==val):[...arr,val]};
+    });
+  };
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const submit=()=>{
+    if(!form.goal) return setErr("Please pick a health goal.");
+    if(!form.cuisine.length) return setErr("Pick at least one cuisine.");
+    if(form.cookingFor==="family"&&!form.familyMembers.length) return setErr("Tell us who's in the family.");
+    if(!form.meals.length) return setErr("Pick at least one meal.");
+    setErr(""); onSubmit(form);
+  };
+  const isFamily=form.cookingFor==="family";
+  const hasT=form.calorieTarget||form.proteinTarget||form.fibreTarget;
+  const isRet=!!initialProfile;
+  return (
+    <div>
+      <div className="section-label">{isRet?"New Week":"Step 1 of 3"}</div>
+      <div className="section-title">{isRet?"Tweak & regenerate":"Tell us about yourself"}</div>
+      <div className="section-sub">{isRet?"Your last settings are pre-filled.":"We'll build a plan that fits your life."}</div>
+      {lastFeedback&&lastFeedback.summary&&<div className="returning-banner"><strong>📋 From last week:</strong> {lastFeedback.summary}</div>}
+      <div className="form-grid">
+        <div className="row-2">
+          <div className="field"><label>Diet type</label>
+            <select value={form.diet} onChange={e=>set("diet",e.target.value)}>
+              {["Vegetarian","Plant-based + Eggs","Non-vegetarian","Vegan","Jain","Eggetarian"].map(d=><option key={d}>{d}</option>)}
+            </select>
+          </div>
+          <div className="field"><label>Who cooks?</label>
+            <select value={form.cooking} onChange={e=>set("cooking",e.target.value)}>
+              <option value="myself">I cook myself</option>
+              <option value="cook">I have a cook</option>
+              <option value="both">Both / mix</option>
+            </select>
+          </div>
+        </div>
+        <div className="field"><label>Cooking for</label>
+          <div className="chip-group">
+            {[["myself","Just me"],["family","My family"]].map(([v,l])=>(
+              <button key={v} className={"chip "+(form.cookingFor===v?"selected":"")} onClick={()=>{set("cookingFor",v);if(v==="myself")set("familyMembers",[]);}}>{l}</button>
+            ))}
+          </div>
+        </div>
+        {isFamily&&<>
+          <div className="field"><label>Who's at the table?</label>
+            <div className="chip-group">{FAMILY_MEMBERS.map(m=><button key={m} className={"chip "+(form.familyMembers.includes(m)?"selected":"")} onClick={()=>toggle("familyMembers",m)}>{m}</button>)}</div>
+          </div>
+          <div className="field"><label>Family likes/avoids <span style={{color:"#aaa",fontWeight:300}}>(optional)</span></label>
+            <input type="text" placeholder="e.g. kids love pasta, no bitter gourd" value={form.familyLikes} onChange={e=>set("familyLikes",e.target.value)}/>
+          </div>
+        </>}
+        <div className="field"><label>Cuisine preference</label>
+          <div className="chip-group">{CUISINES.map(c=><button key={c} className={"chip "+(form.cuisine.includes(c)?"selected":"")} onClick={()=>toggle("cuisine",c)}>{c}</button>)}</div>
+        </div>
+        <div className="field"><label>Health goal</label>
+          <div className="chip-group">{GOALS.map(g=><button key={g} className={"chip "+(form.goal===g?"selected":"")} onClick={()=>set("goal",g)}>{g}</button>)}</div>
+        </div>
+        <div className="row-2">
+          <div className="field"><label>Activity level</label>
+            <select value={form.activity} onChange={e=>set("activity",e.target.value)}>
+              {["Sedentary","Light","Moderate","Active","Very active"].map(a=><option key={a}>{a}</option>)}
+            </select>
+          </div>
+          <div className="field"><label>Phase of life</label>
+            <select value={form.phase} onChange={e=>set("phase",e.target.value)}>
+              {["Regular adult","Pregnant","Postpartum","Senior (60+)","Teen / growing","Post-surgery"].map(p=><option key={p}>{p}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="field"><label>Allergies</label>
+          <div className="chip-group">{ALLERGIES.map(a=><button key={a} className={"chip "+(form.allergies.includes(a)?"selected":"")} onClick={()=>toggle("allergies",a)}>{a}</button>)}</div>
+        </div>
+        <div className="field"><label>Meals to plan</label>
+          <div className="chip-group">{ALL_MEALS.map(m=><button key={m} className={"chip "+(form.meals.includes(m)?"selected":"")} onClick={()=>toggle("meals",m)}>{m}</button>)}</div>
+          <div className="hint">{!form.meals.length?"Pick at least one":form.meals.length+" meal"+(form.meals.length>1?"s":"")+" selected"}</div>
+        </div>
+        <div className="field">
+          <label>Daily targets <span style={{color:"#aaa",fontWeight:300}}>(optional)</span></label>
+          <div className="row-3">
+            <div style={{display:"flex",flexDirection:"column",gap:4}}>
+              <input type="number" placeholder="Calories" value={form.calorieTarget} onChange={e=>set("calorieTarget",e.target.value)} min="0" max="5000"/>
+              <div className="hint" style={{textAlign:"center"}}>kcal/day</div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:4}}>
+              <input type="number" placeholder="Protein" value={form.proteinTarget} onChange={e=>set("proteinTarget",e.target.value)} min="0" max="300"/>
+              <div className="hint" style={{textAlign:"center"}}>g protein</div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:4}}>
+              <input type="number" placeholder="Fibre" value={form.fibreTarget} onChange={e=>set("fibreTarget",e.target.value)} min="0" max="100"/>
+              <div className="hint" style={{textAlign:"center"}}>g fibre</div>
+            </div>
+          </div>
+          {hasT&&<div className="targets-row">
+            {form.calorieTarget&&<span className="target-chip cal">🔥 {form.calorieTarget} kcal</span>}
+            {form.proteinTarget&&<span className="target-chip protein">💪 {form.proteinTarget}g protein</span>}
+            {form.fibreTarget&&<span className="target-chip fibre">🥦 {form.fibreTarget}g fibre</span>}
+          </div>}
+        </div>
+        <div className="field"><label>Plan for how many days?</label>
+          <select value={form.days} onChange={e=>set("days",e.target.value)}>
+            {["2","3","5","7"].map(d=><option key={d} value={d}>{d} days</option>)}
+          </select>
+        </div>
+      </div>
+      {err&&<div className="error-box">{err}</div>}
+      <button className="btn" onClick={submit}>{isRet?"Generate New Plan →":"Generate My Meal Plan →"}</button>
+    </div>
+  );
+}
+
+function PlanView({ plan, profile, feedback, onSelectMeal, onRegenerate, onDownload, onEditProfile, onOpenFeedback, loading }) {
+  return (
+    <div>
+      <div className="plan-header">
+        <div className="section-label">Your Personalised Plan</div>
+        <div className="section-title">{parseInt(profile.days)}-Day Menu {profile.cookingFor==="family"?"for the Family":""}</div>
+        <div className="section-sub">{profile.goal} · {profile.diet} · {profile.cuisine.join(", ")}</div>
+      </div>
+      <div className="plan-actions">
+        <button className="action-btn download" onClick={onDownload}>⬇ Download CSV</button>
+        <button className="action-btn edit" onClick={onEditProfile}>✎ Edit preferences</button>
+        <button className="action-btn feedback-btn" onClick={onOpenFeedback}>💬 Feedback + next week</button>
+      </div>
+      <TargetBars plan={plan} meals={profile.meals} profile={profile}/>
+      {plan.map((day,di)=>{
+        const dt=profile.meals.reduce((a,mt)=>{const m=day[mt];if(m){a.c+=m.cal||0;a.p+=m.protein||0;a.f+=m.fibre||0;}return a;},{c:0,p:0,f:0});
+        const over=profile.calorieTarget&&dt.c>parseInt(profile.calorieTarget);
+        return (
+          <div key={di} className="day-block">
+            <div className="day-label">Day {di+1}</div>
+            <div className="day-totals">
+              <span>{dt.c} kcal</span> · <span>{dt.p}g protein</span> · <span>{dt.f}g fibre</span>
+              {profile.calorieTarget&&<span style={{color:over?"#c0392b":"#888"}}>{over?"⚠️ "+(dt.c-parseInt(profile.calorieTarget))+" over":"✓ "+(parseInt(profile.calorieTarget)-dt.c)+" under"}</span>}
+            </div>
+            {profile.meals.filter(mt=>day[mt]).map(mt=>{
+              const m=day[mt],key=di+"-"+mt,status=feedback[key];
+              return (
+                <div key={mt} className="meal-row">
+                  <div className="meal-type">{mt}</div>
+                  <div className={"meal-name "+(status==="skipped"?"skipped":"")}>
+                    {m.name}
+                    {m.trending&&<span className="badge badge-trending">🔥 Trending</span>}
+                    {m.familyFriendly&&profile.cookingFor==="family"&&<span className="badge badge-family">👨‍👩‍👧 Family</span>}
+                    {status==="cooked"&&<span className="badge badge-cooked">✓ Cooked</span>}
+                    {status==="modified"&&<span className="badge badge-modified">~ Modified</span>}
+                  </div>
+                  <div className="meal-macros">{m.cal} kcal · {m.protein}g P</div>
+                  <button className="recipe-btn" onClick={()=>onSelectMeal(m,profile)}>Recipe →</button>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+      <div className="btn-row">
+        <button className="btn btn-ghost" style={{marginTop:0}} onClick={onEditProfile}>← Edit</button>
+        <button className="btn btn-ghost" style={{marginTop:0}} onClick={onRegenerate} disabled={loading}>{loading?"Regenerating…":"↺ Regenerate"}</button>
+      </div>
+    </div>
+  );
+}
+
+function RecipeView({ recipe, profile, onBack }) {
+  return (
+    <div>
+      <div className="back-link" onClick={onBack}>← Back to plan</div>
+      <div className="recipe-card">
+        <div className="recipe-card-header">
+          <h2>{recipe.name}</h2>
+          <p>{recipe.prepTime} · {recipe.difficulty} · {recipe.servings} serving{recipe.servings!==1?"s":""}</p>
+        </div>
+        <div className="recipe-card-body">
+          <div className="macro-strip">
+            <div className="macro-pill cal">🔥 {recipe.cal} kcal</div>
+            <div className="macro-pill protein">💪 {recipe.protein}g protein</div>
+            <div className="macro-pill">🌾 {recipe.carbs}g carbs</div>
+            <div className="macro-pill">🫒 {recipe.fat}g fat</div>
+            {recipe.fibre&&<div className="macro-pill fibre">🥦 {recipe.fibre}g fibre</div>}
+          </div>
+          <div className="recipe-section-title">Ingredients</div>
+          <ul className="ingredient-list">{(recipe.ingredients||[]).map((ing,i)=><li key={i}>{ing.name}<span>{ing.qty}</span></li>)}</ul>
+          <div className="recipe-section-title">Steps</div>
+          <ol className="steps-list">{(recipe.steps||[]).map((s,i)=><li key={i}>{s}</li>)}</ol>
+          <div className="cook-note">
+            <div className="cook-note-label">🧑‍🍳 {profile.cooking==="cook"?"Cook's Key Tips":"Quick Cook Tips"}</div>
+            {Array.isArray(recipe.cookTips)
+              ?<ul className="cook-tips-list">{recipe.cookTips.map((t,i)=><li key={i}>{t}</li>)}</ul>
+              :<p style={{fontSize:14,lineHeight:1.7,color:"#5a3e10"}}>{recipe.cookNote}</p>}
+          </div>
+          {recipe.youtubeRefs&&recipe.youtubeRefs.length>0&&(
+            <div className="yt-section">
+              <div className="recipe-section-title">Watch How It's Made</div>
+              <div className="yt-cards">
+                {recipe.youtubeRefs.map((ref,i)=>(
+                  <a key={i} className="yt-card" href={"https://www.youtube.com/results?search_query="+encodeURIComponent(ref.query)} target="_blank" rel="noreferrer">
+                    <div className="yt-icon">▶</div>
+                    <div className="yt-info">
+                      <div className="yt-title">{ref.title}</div>
+                      <div className="yt-meta">YouTube · {ref.channel}</div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="share-section">
+            <div className="share-label">Share via WhatsApp</div>
+            <a href={"https://wa.me/?text="+encodeURIComponent(buildFullShareText(recipe))} target="_blank" rel="noreferrer" className="share-btn share-btn-full">📤 Send full recipe + steps</a>
+            <a href={"https://wa.me/?text="+encodeURIComponent(buildTipsShareText(recipe))} target="_blank" rel="noreferrer" className="share-btn" style={{background:"var(--saffron-light)",color:"#92400e",border:"1.5px solid #f0c890"}}>📋 Send cook tips only</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+
+  const [step, setStep] = useState(0);
+  const [profile, setProfile] = useState(null);
+  const [plan, setPlan] = useState(null);
+  const [selectedMeal, setSelectedMeal] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState("");
+  const [error, setError] = useState("");
+  const [feedback, setFeedback] = useState({});
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [lastFeedback, setLastFeedback] = useState(null);
+  const [toast, setToast] = useState("");
+
+
+  const showToast = (msg) => { setToast(msg); setTimeout(()=>setToast(""), 2500); };
+
+  const generatePlan = async (prof) => {
+    setLoading(true); setError(""); setFeedback({});
+    setLoadingMsg("Crafting your personalised menu…");
+    const days = parseInt(prof.days);
+    const familyCtx = prof.cookingFor==="family" ? "- Cooking for: Family ("+prof.familyMembers.join(", ")+")\n- Family notes: "+(prof.familyLikes||"none") : "- Cooking for: Just themselves";
+    const macroCtx = "- Calorie target: "+(prof.calorieTarget?prof.calorieTarget+"kcal/day":"calculate")+"\n- Protein: "+(prof.proteinTarget?prof.proteinTarget+"g/day":"calculate")+"\n- Fibre: "+(prof.fibreTarget?prof.fibreTarget+"g/day":"calculate");
+    const fbCtx = lastFeedback&&lastFeedback.raw ? '\nPrevious feedback: "'+lastFeedback.raw+'". Skipped: '+((lastFeedback.skipped&&lastFeedback.skipped.join(", "))||"none")+". Avoid repeating skipped dishes." : "";
+    const prompt = "Create a "+days+"-day meal plan:\n- Diet: "+prof.diet+", Cuisines: "+prof.cuisine.join(", ")+"\n- Goal: "+prof.goal+", Activity: "+prof.activity+", Phase: "+prof.phase+"\n- Allergies: "+prof.allergies.join(", ")+", Who cooks: "+prof.cooking+"\n"+familyCtx+"\n"+macroCtx+fbCtx+"\nMeals each day (ONLY these): "+prof.meals.join(", ")+"\nReturn JSON array of "+days+" objects, each with ONLY these keys: "+prof.meals.map(m=>'"'+m+'"').join(", ")+".\nEach meal value: {\"name\":string,\"cal\":number,\"protein\":number,\"fibre\":number,\"trending\":boolean,\"familyFriendly\":boolean}\nVary dishes. Snacks ~150-250kcal, mains ~350-600kcal.";
+    try {
+      const raw = await callClaude(prompt, "You are Ruchikaar, an expert Indian nutritionist and chef. ALWAYS respond with valid JSON only. No markdown, no explanation outside the JSON.");
+      setPlan(JSON.parse(raw.replace(/```json|```/g,"").trim()));
+      setProfile(prof); setStep(1);
+    } catch(e) { setError("Couldn't generate plan: "+e.message); }
+    finally { setLoading(false); }
+  };
+
+  const generateRecipe = async (meal, prof) => {
+    setLoading(true); setError("");
+    setLoadingMsg("Getting recipe for "+meal.name+"…");
+    const servings = prof.cookingFor==="family"?prof.familyMembers.length+1:1;
+    const cookCtx = prof.cooking==="cook" ? "cookTips: 3-5 Hinglish bullet points. First starts 'Aaj banayenge...'. Oil qty, heat, technique." : "cookTips: 3-5 friendly self-cook tips.";
+    const prompt = 'Recipe for "'+meal.name+'": Diet:'+prof.diet+', Allergies:'+prof.allergies.join(",")+', Goal:'+prof.goal+', Servings:'+servings+'. '+cookCtx+'\nReturn JSON: {"name":"'+meal.name+'","cal":'+meal.cal+',"protein":'+meal.protein+',"fibre":number,"carbs":number,"fat":number,"prepTime":"X mins","difficulty":"Easy/Medium","servings":'+servings+',"ingredients":[{"name":string,"qty":string}],"steps":["4-6 steps"],"cookTips":["3-5 tips"],"youtubeRefs":[{"title":string,"query":string,"channel":string},{"title":string,"query":string,"channel":string}]}';
+    try {
+      const raw = await callClaude(prompt, "You are Ruchikaar, an expert Indian nutritionist and chef. ALWAYS respond with valid JSON only.");
+      setSelectedMeal(JSON.parse(raw.replace(/```json|```/g,"").trim()));
+      setStep(2);
+    } catch(e) { setError("Couldn't load recipe: "+e.message); }
+    finally { setLoading(false); }
+  };
+
+  const handleSaveAndRegen = (note) => {
+    const skipped = Object.entries(feedback).filter(([,v])=>v==="skipped").map(([k])=>{const idx=k.indexOf("-");const di=parseInt(k.slice(0,idx));const mt=k.slice(idx+1);return plan[di]&&plan[di][mt]&&plan[di][mt].name;}).filter(Boolean);
+    const cooked = Object.values(feedback).filter(v=>v==="cooked").length;
+    const total = profile.meals.length*plan.length;
+    const parts = [cooked>0?cooked+"/"+total+" meals cooked":null, skipped.length>0?"Didn't make: "+skipped.join(", "):null, note||null].filter(Boolean);
+    setLastFeedback({raw:note,skipped,summary:parts.join(". ")});
+    setShowFeedback(false); setStep(0);
+    showToast("Feedback saved! Regenerate when ready.");
+  };
+
+
+
+  return (
+    <div className="app">
+      <div className="header">
+        <span className="logo">Ruchikaar<span className="logo-dot"/></span>
+        <span className="tagline">Smart Meal Planner</span>
+      </div>
+      <div className="steps">
+        {["Profile","Plan","Recipe"].map((s,i)=>(
+          <div key={s} className={"step-dot "+(i<step?"done":i===step?"active":"")}/>
+        ))}
+      </div>
+      {loading?(
+        <div className="loading-wrap"><div className="spinner"/><strong>One moment…</strong><p>{loadingMsg}</p></div>
+      ):step===0?(
+        <ProfileForm onSubmit={generatePlan} initialProfile={profile} lastFeedback={lastFeedback}/>
+      ):step===1?(
+        <>
+          <PlanView plan={plan} profile={profile} feedback={feedback}
+            onSelectMeal={generateRecipe}
+            onRegenerate={()=>generatePlan(profile)}
+            onDownload={()=>{downloadPlanCSV(plan,profile,feedback);showToast("Downloaded! ✓");}}
+            onEditProfile={()=>setStep(0)}
+            onOpenFeedback={()=>setShowFeedback(true)}
+            loading={loading}/>
+          {error&&<div className="error-box">{error}</div>}
+        </>
+      ):step===2?(
+        <>
+          <RecipeView recipe={selectedMeal} profile={profile} onBack={()=>setStep(1)}/>
+          {error&&<div className="error-box">{error}</div>}
+        </>
+      ):null}
+      {showFeedback&&(
+        <FeedbackModal plan={plan} profile={profile} feedback={feedback}
+          onUpdate={(k,v)=>setFeedback(f=>({...f,[k]:v}))}
+          onClose={()=>setShowFeedback(false)}
+          onSaveAndRegen={handleSaveAndRegen}/>
+      )}
+      {toast&&<div className="toast">{toast}</div>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

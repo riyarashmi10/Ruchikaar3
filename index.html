@@ -167,7 +167,7 @@ const GOALS = ["Weight loss", "Weight gain", "Muscle gain", "Maintain weight", "
 const FAMILY_MEMBERS = ["Young kids (under 10)", "Teens", "Adults", "Elderly (60+)"];
 
 async function callClaude(prompt, systemPrompt) {
-  const apiKey = "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";
+  const apiKey = "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";
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
